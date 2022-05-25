@@ -17,10 +17,10 @@ def create_tables(con):
 	CREATE TABLE IF NOT EXISTS site_options(
 		-- Lookup columns
 		-- ROWID is automatic in SQLite
-		site_id integer not null,
-		brand string not null,
-		pn string not null,
-		dp_id integer not null,
+		site_id integer not null, -- Not fillable
+		brand string not null,    -- Fill value = *
+		pn string not null,       -- Fill value = *
+		dp_id integer not null,   -- Fill value = 0
 		-- Data columns, these need to be nullable for our fill scheme to work
 		-- SQLite doesn't have boolean types
 		on_site integer default true);
@@ -39,10 +39,10 @@ def fetch_site_option(con, site_id, brand, pn, dp_id):
 	# Execute coalesce query to get first non-null result
 	query = con.execute('''
 	SELECT COALESCE(
-		(SELECT on_site FROM site_options WHERE site_id=:site_id AND brand=:brand AND pn=:pn AND dp_id=:dp_id LIMIT 1),
-		(SELECT on_site FROM site_options WHERE site_id=:site_id AND brand=:brand AND pn=:pn AND dp_id=0 LIMIT 1),
+		(SELECT on_site FROM site_options WHERE site_id=:site_id AND brand=:brand AND pn=:pn   AND dp_id=:dp_id LIMIT 1),
+		(SELECT on_site FROM site_options WHERE site_id=:site_id AND brand=:brand AND pn=:pn   AND dp_id=0 LIMIT 1),
 		(SELECT on_site FROM site_options WHERE site_id=:site_id AND brand=:brand AND pn=\'*\' AND dp_id=0 LIMIT 1),
-		(SELECT on_site FROM site_options WHERE site_id=:site_id AND brand=\'*\' AND pn=\'*\' AND dp_id=0 LIMIT 1),
+		(SELECT on_site FROM site_options WHERE site_id=:site_id AND brand=\'*\'  AND pn=\'*\' AND dp_id=0 LIMIT 1),
 		TRUE);
 	''', params);
 	# Fetch the result and convert to a boolean
@@ -68,9 +68,9 @@ def main():
 	# Store a fill over all options for a specific item using a placeholder for the DP_ID column
 	store_site_option(con, 8080, "ASHLEY", "000111", 0, False)
 	# Store option data for specific item
-	store_site_option(con, 8080, "ASHLEY", "000111", 1000000, False)
+	store_site_option(con, 8080, "ASHLEY", "000111", 1000000, True)
 
-	# Should retrieve the specific value for this option (false)
+	# Should retrieve the specific value for this option (true)
 	print(fetch_site_option(con, 8080, "ASHLEY", "000111", 1000000))
 	# Should retrieve from the fill over all options for this item (false)
 	print(fetch_site_option(con, 8080, "ASHLEY", "000111", 1000001))
